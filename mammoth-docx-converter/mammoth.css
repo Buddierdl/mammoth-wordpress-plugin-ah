@@ -54,3 +54,18 @@
 .mammoth-tabs .tabs-nav li.selected {
     background-color: #2C4766;
 }
+
+#mammoth-progress-bar {
+    border-radius: 5px;
+    border: 1px solid #444;
+    margin-top: 5px;
+    width: 400px;
+    max-width: 100%;
+}
+
+#mammoth-progress-bar-inner {
+    height: 15px;
+    width: 0;
+    background-color: #2271b1;
+    transition: width 0.3s ease-in-out;
+}

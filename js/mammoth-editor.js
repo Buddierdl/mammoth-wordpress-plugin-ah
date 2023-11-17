@@ -1,4 +1,4 @@
-var mammoth = require("mammoth-ah");
+var mammoth = require("mammoth");
 var slug = require("./slug");
 
 var parentElement = document.getElementById("mammoth-docx-uploader");
@@ -8,8 +8,10 @@ if (parentElement) {
 
 function setUpMammoth() {
     var latestDocumentArrayBuffer = null;
+    var numberOfImages = null;
     var uploadElement = document.getElementById("mammoth-docx-upload");
     var visualPreviewElement = document.getElementById("mammoth-docx-visual-preview");
+    var progressBar = document.getElementById("mammoth-progress-bar-inner");
 
     uploadElement.addEventListener('change', function(event) {
         parentElement.className = "status-loading";
@@ -36,6 +38,8 @@ function setUpMammoth() {
             latestDocumentArrayBuffer = arrayBuffer;
             convertToHtml({arrayBuffer: arrayBuffer})
                 .then(function(result) {
+                    var doc = new DOMParser().parseFromString(result.value, 'text/html');
+                    numberOfImages = doc.querySelectorAll('img').length;
                     showResult(result);
                 })
                 .then(null, showError);
@@ -58,6 +62,10 @@ function setUpMammoth() {
     document.getElementById("mammoth-docx-insert")
         .addEventListener("click", insertIntoEditor, false);
 
+    function setProgress(percent) {
+        progressBar.style.width = percent * 100 + "%";
+    }
+
     function insertIntoEditor() {
         var postId = document.getElementById("post_ID").value;
         var lastImageNumber = 0;
@@ -79,6 +87,7 @@ function setUpMammoth() {
                             nonce: uploadResult.data.nonces.update
                         });
                     }
+                    setProgress((imageNumber + 1) / numberOfImages);
                     return {
                         src: uploadResult.data.url,
                         "class": "wp-image-" + uploadResult.data.id
@@ -87,6 +96,7 @@ function setUpMammoth() {
             }),
             idPrefix: "post-" + postId + "-"
         };
+        setProgress(1 / numberOfImages);
         parentElement.classList.add("status-inserting");
         convertToHtml({arrayBuffer: latestDocumentArrayBuffer}, options)
             .then(function(result) {
