@@ -1,4 +1,4 @@
-var mammoth = require("mammoth");
+var mammoth = require("mammoth-ah");
 var slug = require("./slug");
 
 var parentElement = document.getElementById("mammoth-docx-uploader");
@@ -17,7 +17,7 @@ function setUpMammoth() {
     }, false);
 
     function convertToHtml(input, options) {
-        var fullOptions = {prettyPrint: true};
+        var fullOptions = {}; //{prettyPrint: true};
         for (var key in options) {
             fullOptions[key] = options[key];
         }
@@ -181,8 +181,15 @@ function setUpMammoth() {
             // This code previously checked if wp.blocks was defined, but this
             // seems to be unreliable when some plugins are installed, such as
             // Yoast.
-            var block = wp.blocks.createBlock("core/freeform", {content: text});
-            wp.data.dispatch("core/editor").insertBlocks(block);
+            // var block = wp.blocks.createBlock("core/freeform", {content: text});
+            console.log(text);
+            var newBlocks = wp.blocks.rawHandler( { HTML: text } );    
+            //wp.data.dispatch("core/editor").insertBlocks(block);
+            var blocks = wp.data.select('core/block-editor').getBlocks();
+            var postContentID = blocks[0].innerBlocks.find(block => block.name == 'analyst-hub/main-content').clientId;
+            // var postContentID = blocks[blocks.length - 1].clientId;
+            // wp.data.dispatch('core/block-editor').insertBlocks(newBlocks, null, postContentID);
+            wp.data.dispatch('core/block-editor').replaceInnerBlocks(postContentID, newBlocks);
         } else if (window.tinyMCE && tinyMCE.get(elementId) && !tinyMCE.get(elementId).isHidden()) {
             // This reimplements mceInsertRawHTML due to a bug in tinyMCE:
             // https://github.com/tinymce/tinymce/issues/4401
