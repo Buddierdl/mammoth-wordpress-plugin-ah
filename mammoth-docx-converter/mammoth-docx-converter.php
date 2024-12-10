@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Mammoth .docx converter
+Plugin Name: Mammoth .docx converter - forked for Analyst Hub
 Plugin URI: https://github.com/mwilliamson/mammoth-wordpress-plugin
 Description: Mammoth converts semantically marked up .docx documents to simple and clean HTML.
 Version: 1.20.0
@@ -8,6 +8,8 @@ Author: Michael Williamson
 Author URI: http://mike.zwobble.org/
 License: BSD 2-clause
 */
+
+define("MAMMOTH_URI", plugin_dir_url(__FILE__));
 
 add_action( 'add_meta_boxes', 'mammoth_add_post_meta_box' );
 add_action( 'admin_footer', 'mammoth_load_javascript' );
@@ -30,7 +32,7 @@ function mammoth_add_post_meta_box() {
 }
 
 function mammoth_admin_style() {
-    wp_enqueue_style( 'mammoth-style', plugins_url( 'mammoth-docx-converter/mammoth.css' ), array(), "1.3.0" );
+    wp_enqueue_style( 'mammoth-style', MAMMOTH_URI . 'mammoth.css', array(), "1.4.0" );
 }
 
 
@@ -50,6 +52,9 @@ function mammoth_render_editor_box( $post ) {
 
         <div id="mammoth-docx-inserting">
             Inserting...
+            <div id="mammoth-progress-bar">
+                <div id="mammoth-progress-bar-inner"></div>
+            </div>
         </div>
 
         <p class="mammoth-docx-error">
@@ -105,7 +110,7 @@ function mammoth_load_javascript() {
 }
 
 function mammoth_load_script( $name ) {
-    $url = plugins_url( 'mammoth-docx-converter/' . $name . '.js' );
+    $url = MAMMOTH_URI . $name . '.js';
     echo '<script src="'. $url . '?v=1.20.0"></script>';
 }
 
