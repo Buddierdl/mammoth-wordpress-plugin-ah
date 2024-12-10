@@ -72,12 +72,12 @@ function setUpMammoth() {
         var options = {
             convertImage: mammoth.images.inline(function(element) {
                 var imageNumber = ++lastImageNumber;
-                return element.read("binary").then(function(imageBinaryString) {
+                return element.readAsArrayBuffer().then(function(imageArrayBuffer) {
                     var filename = generateFilename(element, {postId: postId, imageNumber: imageNumber});
                     return uploadImage({
                         filename: filename,
                         contentType: element.contentType,
-                        binary: imageBinaryString
+                        arrayBuffer: imageArrayBuffer
                     });
                 }).then(function(uploadResult) {
                     if (element.altText) {
@@ -122,33 +122,33 @@ function setUpMammoth() {
     function uploadImage(options) {
         var filename = options.filename;
         var contentType = options.contentType;
-        var imageBinaryString = options.binary;
-        var formData = new PolyfillFormData();
+        var imageArrayBuffer = options.arrayBuffer;
+        var formData = new FormData();
         formData.append("name", filename);
         formData.append("action", "upload-attachment");
         formData.append("post_id", document.getElementById("post_ID").value);
         var nonce = document.getElementById("mammoth-docx-upload-image-nonce").value;
         formData.append("_wpnonce", nonce);
-        formData.appendFile("async-upload", {
-            binary: imageBinaryString,
-            contentType: contentType,
-            filename: filename
-        });
-        return jQuery.ajax({
-            url: document.getElementById("mammoth-docx-upload-image-href").value,
-            type: "POST",
-            data: formData.body(),
-            processData: false,
-            contentType: 'multipart/form-data; boundary=' + formData.boundary,
+        var imageBlob = new Blob([imageArrayBuffer], {type: contentType});
+        formData.append("async-upload", imageBlob, filename);
+        return fetch(document.getElementById("mammoth-docx-upload-image-href").value, {
+            method: "POST",
+            body: formData,
             dataType: "json"
+        }).then(function(response) {
+            if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error(response.statusText);
+            }
         }).then(function(uploadResult) {
             if (uploadResult.success !== false) {
                 return uploadResult;
             } else {
                 return rejectImage(uploadResult.data.message);
             }
-        }, function(value) {
-            return rejectImage(value.statusText);
+        }, function(error) {
+            return rejectImage(error.toString());
         });
     }
 
@@ -301,55 +301,4 @@ function setUpMammoth() {
             visualPreviewDocument.head.appendChild(element);
         });
     }
-
-    function toArrayBuffer(buffer) {
-        var arrayBuffer = new ArrayBuffer(buffer.length);
-        var view = new Uint8Array(arrayBuffer);
-        for (var i = 0; i < buffer.length; ++i) {
-            view[i] = buffer.readUInt8(i);
-        }
-        return arrayBuffer;
-    }
-
-    function PolyfillFormData() {
-        this.boundary = "-----------------------------" + Math.floor(Math.random() * 0x100000000);
-        this._fields = [];
-        this._files = [];
-    }
-
-    PolyfillFormData.prototype.append = function(key, value) {
-        this._fields.push({key: key, value: value});
-    };
-
-    PolyfillFormData.prototype.appendFile = function(key, file) {
-        this._files.push({key: key, file: file});
-    };
-
-    PolyfillFormData.prototype.body = function() {
-        var boundary = this.boundary;
-        var body = "";
-        this._fields.forEach(function(field) {
-            body += "--" + boundary + "\r\n";
-            body += "Content-Disposition: form-data; name=\"" + field.key + "\"\r\n\r\n";
-            body += field.value + "\r\n";
-        });
-        this._files.forEach(function(field) {
-            body += "--" + boundary + "\r\n";
-            body += 'Content-Disposition: form-data; name="' + field.key + '"; filename="' + field.file.filename + '"\r\n';
-            if (field.file.contentType) {
-                body += "Content-Type: " + field.file.contentType + "\r\n\r\n";
-            }
-            body += field.file.binary + "\r\n";
-        });
-        body += "--" + boundary +"--\r\n";
-
-        var nBytes = body.length
-        var ui8Data = new Uint8Array(nBytes);
-        for (var nIdx = 0; nIdx < nBytes; nIdx++) {
-            ui8Data[nIdx] = body.charCodeAt(nIdx) & 0xff;
-        }
-        return ui8Data;
-    };
-
-};
-
+}
